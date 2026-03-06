@@ -20,10 +20,9 @@ An Inventory Management System is designed to manage:
 ## 2. Database Information
 
 * **Database Engine:** PostgreSQL
-* **Version:** 15
+* **Version:** V1
 * **Database Name:** Inventory Management
-* **Primary Key Strategy:** UUID
-* **Design Standard:** 3rd Normal Form (3NF)
+
 
 ---
 
@@ -54,7 +53,7 @@ An Inventory Management System is designed to manage:
 
 ### Diagram
 
-![ERD](../assets/ERD.png)
+![ERD](../assets/ER_DIAGRAM.drawio.png)
 
 ---
 
