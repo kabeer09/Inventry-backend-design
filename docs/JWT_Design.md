@@ -1,51 +1,60 @@
+# JWT Authentication Design Documentation
 
-# Inventory Managemenht System – JWT Authentication & Claims Design
+## 1. Overview
 
----
+The Inventory system uses **JWT (JSON Web Tokens)** for authentication and authorization.
 
-# 1️ Overview
+JWT is a compact and secure method for transmitting information between the client and the server. It allows stateless authentication, meaning the server does not need to store session information.
 
- Inventory uses **JSON Web Tokens (JWT)** for authentication and authorization.
+Key benefits of JWT authentication include:
 
-JWT is used to:
+* Stateless authentication
+* Secure token-based access
+* Scalability for distributed systems
+* Reduced database lookups for authentication
 
-* Authenticate users
-* Identify user role
-* Enforce role-based access control (RBAC)
-* Secure REST, GraphQL, and gRPC APIs
-
----
-
-# 2️ Why JWT?
-
-| Feature        | Benefit                           |
-| -------------- | --------------------------------- |
-| Stateless      | No server session storage         |
-| Self-contained | Token carries user information    |
-| Scalable       | Works well in distributed systems |
-| Secure         | Signed using secret/private key   |
+JWT is commonly used for securing REST APIs, GraphQL APIs, and service-to-service communication.
 
 ---
 
-# 3️ JWT Structure
+# 2. Authentication Flow
 
-A JWT consists of three parts:
+The authentication process follows these steps:
+
+1. The user sends login credentials (email and password) to the authentication endpoint.
+2. The server verifies the credentials.
+3. If authentication succeeds, the server generates a JWT token.
+4. The client stores the token.
+5. The token is included in every API request.
+6. The server verifies the token before processing the request.
+
+Authentication flow:
+
+Client → Login Request → Server Validation → JWT Generation → Client Stores Token → Authenticated API Requests
+
+---
+
+# 3. JWT Structure
+
+A JWT token consists of three parts separated by dots:
+
+Header.Payload.Signature
+
+Example token format:
 
 ```
-HEADER.PAYLOAD.SIGNATURE
+xxxxx.yyyyy.zzzzz
 ```
+
+Each part contains specific information.
+
+---
+
+## 3.1 Header
+
+The header contains metadata about the token.
 
 Example:
-
-```
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
-eyJzdWIiOiIxMjMiLCJyb2xlIjoiQURNSU4ifQ.
-signature
-```
-
----
-
-# 4️ Header
 
 ```json
 {
@@ -54,364 +63,227 @@ signature
 }
 ```
 
-* `alg`: Signing algorithm (HMAC SHA256)
-* `typ`: Token type
+Fields:
+
+* **alg** → Algorithm used to sign the token
+* **typ** → Token type (JWT)
 
 ---
 
-# 5️ Payload (Claims)
+## 3.2 Payload
 
- Inventory uses:
+The payload contains **claims**, which are pieces of information about the user.
 
- {
-  "sub": "user_123",
-  "email": "admin@invtry.com",
-  "role": "ADMIN",
-  "iat": 1710000000,
-  "exp": 1710003600,
-  "iss": "invtry-api"
-}
-
-### Standard Claims
-
-### Custom Claims (Application-Specific)
-
-### Signing Algorithm
-
-* For development:
-
-* HS256 (HMAC SHA-256)
-
-* For production (recommended):
-
-* RS256 (Public/Private key pair)
-
-* Benefits of RS256:
-
-* More secure
-
-* Microservice-friendly
-
-* Public key distribution possible
-
----
-
-# 6️ Standard Claims Used
-
-| Claim | Description              |
-| ----- | ------------------------ |
-| iss   | Issuer                   |
-| sub   | Subject (User ID)        |
-| iat   | Issued At                |
-| exp   | Expiration Time          |
-| jti   | JWT ID (unique token ID) |
-
----
-
-# 7️ Application-Specific Claims (Important)
-
-These are relevant to  Inventory.
-
-| Claim       | Purpose                      |
-| ----------- | ---------------------------- |
-| userId      | Unique user identifier       |
-| email       | User email                   |
-| role        | Role (ADMIN, MANAGER, STAFF) |
-| permissions | Optional fine-grained access |
-| tokenType   | Access or Refresh            |
-
----
-
-# 8️ Final JWT Payload Structure
-
-Example Access Token:
+Example payload:
 
 ```json
 {
-  "iss": " Inventory-api",
-  "sub": "user_123",
-  "userId": "user_123",
-  "email": "admin@Inventory.com",
+  "userId": 101,
+  "email": "user@example.com",
   "role": "ADMIN",
-  "permissions": [
-    "USER_READ",
-    "USER_WRITE",
-    "PRODUCT_MANAGE",
-    "ORDER_MANAGE",
-    "INVENTORY_SYNC"
-  ],
-  "tokenType": "ACCESS",
-  "iat": 1710000000,
-  "exp": 1710003600,
-  "jti": "unique-token-id-456"
+  "exp": 1710000000
 }
 ```
 
----
+Common claims include:
 
-# 9️ Role-Based Authorization Mapping
+| Claim  | Description             |
+| ------ | ----------------------- |
+| userId | Unique user identifier  |
+| email  | User email address      |
+| role   | User authorization role |
+| exp    | Token expiration time   |
 
- Inventory uses RBAC.
-
-| Role    | Permissions                  |
-| ------- | ---------------------------- |
-| ADMIN   | Full system access           |
-| MANAGER | Manage products & categories |
-| STAFF   | View products, create orders |
-
-* Authorization Flow
-
-* JWT validated
-
-* Extract role claim
-
-* Middleware checks required role
-
-* If unauthorized → 403 Forbidden
-
+The payload is encoded but **not encrypted**, so sensitive data should not be included.
 
 ---
 
-## ADMIN
+## 3.3 Signature
 
-* Full access
-* Manage users
-* Manage products
-* Start inventory sync
-* View all jobs
+The signature ensures that the token has not been tampered with.
 
----
+It is generated using the header, payload, and a secret key.
 
-## MANAGER
+Example concept:
 
-* Manage products
-* Manage categories
-* View orders
-* Start inventory sync
+```
+Signature = HMACSHA256(
+  base64UrlEncode(header) + "." + base64UrlEncode(payload),
+  secret_key
+)
+```
 
----
-
-## STAFF
-
-* View products
-* Create orders
-* View own orders only
+The server verifies the signature before accepting the token.
 
 ---
 
-# 10 Access Token vs Refresh Token
+# 4. Using JWT in API Requests
 
-Inventory uses:
+Once authenticated, the client includes the JWT token in the HTTP Authorization header.
 
-### Access Token
-
-* Short-lived (15–60 minutes)
-* Used for API calls
-
----
-
-### Refresh Token
-
-* Long-lived (7–30 days)
-* Used to generate new access token
-* Stored securely (HTTP-only cookie recommended)
-
----
-
-# 11 Token Expiry Strategy
-
-Example:
-
-| Token Type    | Expiry     |
-| ------------- | ---------- |
-| Access Token  | 30 minutes |
-| Refresh Token | 7 days     |
-
-If access token expires:
-
-1. Client calls `/auth/refresh`
-2. New access token issued
-
----
-
-# 12 Authentication Flow
-
-### Login
-
-1. User sends email + password
-2. Server verifies credentials
-3. Server generates:
-
-   * Access Token
-   * Refresh Token
-4. Tokens returned to client
-
----
-
-### API Request
-
-1. Client sends:
+Example request header:
 
 ```
 Authorization: Bearer <access_token>
 ```
 
-2. Server:
-
-   * Verifies signature
-   * Checks expiration
-   * Extracts role
-   * Applies authorization
-
----
-
-# 13 JWT in REST, GraphQL & gRPC
-
----
-
-## REST
-
-Header:
+Example API request:
 
 ```
-Authorization: Bearer <token>
+GET /api/v1/products
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-* Middleware:
-
-Verify signature
-
-Check expiration
-
-Attach user to request context
+The server extracts and validates the token before executing the request.
 
 ---
 
-## GraphQL
+# 5. Token Validation Process
 
-Same header used.
+When the server receives a request, the following validation steps occur:
 
-context: ({ req }) => {
-  const token = req.headers.authorization
+1. Extract token from Authorization header.
+2. Verify token signature using the secret key.
+3. Check token expiration time.
+4. Decode payload information.
+5. Attach user information to the request context.
+
+Example middleware concept:
+
+```javascript
+function verifyToken(token) {
+  const decoded = jwt.verify(token, SECRET_KEY);
+  return decoded;
 }
-
-Resolvers check:
-
-user role
-
-user ID
-Token validated in GraphQL context.
-
----
-
-## gRPC
-
-Token sent via metadata:
-
-```
-authorization: Bearer <token>
 ```
 
-Validated in:
-
-gRPC interceptor
-
-Role applied at service level
+If verification fails, the request is rejected.
 
 ---
 
-# 14 Security Considerations
+# 6. Access Token vs Refresh Token
 
-StockSphere enforces:
+To improve security, many systems use **two types of tokens**.
 
-* Strong secret key
-* HTTPS only
-* Short access token lifetime
-* Refresh token rotation
-* jti for token revocation
-* Blacklist mechanism (optional)
-* Avoid storing sensitive data in payload
+| Token         | Purpose                            |
+| ------------- | ---------------------------------- |
+| Access Token  | Used to access protected APIs      |
+| Refresh Token | Used to generate new access tokens |
 
----
+Access tokens usually have a **short expiration time**, while refresh tokens last longer.
 
-# 15 Token Revocation Strategy
+Example:
 
-Options:
-
-* Maintain token blacklist using `jti`
-* Revoke refresh token on logout
-* Rotate refresh tokens
-
-Recommended approach:
-
-* Store refresh tokens in database
-* Invalidate on logout
-* Check `jti` on sensitive operations
+Access token expiration → 15 minutes
+Refresh token expiration → 7 days
 
 ---
 
-# 16 Sample Middleware Logic (Conceptual)
+# 7. Authorization Using JWT
 
-1. Extract token
-2. Verify signature
-3. Check expiration
-4. Extract role
-5. Attach user to request context
+JWT tokens also carry **role information** which allows the system to enforce authorization rules.
 
----
-
-# 17 Failure Scenarios
-
-| Scenario          | Response         |
-| ----------------- | ---------------- |
-| Token missing     | 401 Unauthorized |
-| Token expired     | 401 Unauthorized |
-| Invalid signature | 401 Unauthorized |
-| Role insufficient | 403 Forbidden    |
-
-* Error Responses
-
-* 401 Unauthorized
-{
-  "error": "Invalid or expired token"
-}
-
-* 403 Forbidden
-{
-  "error": "Insufficient permissions"
-}
-
----
-
-# 18 Why This JWT Design is Production Ready
-
-* Includes both standard & custom claims
-* Supports role-based access
-* Compatible with REST, GraphQL, gRPC
-* Supports refresh mechanism
-* Supports token revocation
-* Scalable across microservices
-
----
-
-# 19 Example Encoded Token Flow
-
-User logs in:
-
-```
-POST /auth/login
-```
-
-Response:
+Example role claim:
 
 ```json
 {
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "role": "ADMIN"
 }
 ```
 
+Example role permissions:
 
+| Role    | Permissions                     |
+| ------- | ------------------------------- |
+| ADMIN   | Full system access              |
+| MANAGER | Manage products and categories  |
+| STAFF   | Create orders and view products |
+
+The server checks the user role before executing protected operations.
+
+---
+
+# 8. Security Considerations
+
+Several security practices are applied when using JWT.
+
+Important measures include:
+
+* Using strong secret keys
+* Setting token expiration times
+* Using HTTPS for all requests
+* Avoiding sensitive data in token payload
+* Implementing refresh token rotation
+* Protecting against token replay attacks
+
+These measures help prevent unauthorized access.
+
+---
+
+# 9. Token Expiration and Renewal
+
+JWT tokens should expire after a certain time to reduce security risks.
+
+Example expiration policy:
+
+Access Token → 15 minutes
+Refresh Token → 7 days
+
+When the access token expires, the client requests a new token using the refresh token.
+
+Example flow:
+
+Client → Send Refresh Token → Server Validates → Issue New Access Token
+
+---
+
+# 10. JWT in Inventory System Architecture
+
+Within the Inventory system architecture, JWT is used to secure API requests.
+
+Architecture flow:
+
+Client Application
+↓
+API Request with JWT
+↓
+Authentication Middleware
+↓
+Authorization Check
+↓
+Service Layer
+↓
+Database
+
+JWT ensures that only authenticated users can access protected resources.
+
+---
+
+# 11. Advantages of JWT Authentication
+
+Using JWT provides several advantages:
+
+* Stateless authentication
+* Scalable for distributed systems
+* Reduces server session storage
+* Supports microservice architectures
+* Easy integration with REST and GraphQL APIs
+
+These features make JWT a widely adopted authentication mechanism.
+
+---
+
+# 12. Limitations of JWT
+
+Despite its advantages, JWT has some limitations.
+
+These include:
+
+* Token revocation can be difficult
+* Large tokens increase request size
+* Sensitive data must not be stored in payload
+
+Proper security practices are required to mitigate these issues.
 
 ---
 

@@ -1,499 +1,386 @@
+# GraphQL_API_Design.md (Documentation Only Version)
 
-# Inventory – GraphQL API Design Documentation
+## 1. Overview
 
----
+The Inventory system exposes a **GraphQL API** to manage core business entities such as users, categories, products, orders, and inventory jobs.
 
-# 1️ Overview
+GraphQL provides a flexible API layer that allows clients to request only the data they need, reducing unnecessary data transfer and improving performance.
 
-Inventory provides a **GraphQL API** to manage:
+The GraphQL API follows a **single endpoint architecture** where all operations are performed through a single HTTP endpoint.
 
-* Users 
-* Categories
-* Products
-* Orders
-* Order Items
-* Inventory
-* Background Jobs
-
-GraphQL enables:
+Key benefits include:
 
 * Flexible data fetching
-* Reduced over-fetching
-* Strong type system
-* Single endpoint architecture
+* Reduced over-fetching and under-fetching
+* Strong schema-based type system
+* Efficient nested data retrieval
+* Simplified client-server communication
 
 ---
 
-# 2️ GraphQL Endpoint
+## 2. GraphQL Endpoint
+
+All GraphQL requests are handled through a **single endpoint**.
+
+Endpoint:
 
 ```
-POST: /graphql
-
+POST /graphql
 ```
 
-All queries and mutations are sent to:
+Base URL example:
 
 ```
 http://localhost:4000/graphql
 ```
 
----
-
-# 3️ Authentication Strategy
-
-Authentication is handled using:
-
-* JWT Bearer Token
-* Sent via HTTP Header:
-
-```
-Authorization: Bearer <access_token>
-```
-
-### Auth Flow
-
-1. User logs in via REST `graphql/auth/login`
-2. Receives JWT
-3. JWT sent with GraphQL requests
-4. GraphQL context extracts and validates user
+Clients send GraphQL queries and mutations as JSON payloads in HTTP POST requests.
 
 ---
 
-# 4️ GraphQL Schema Design
+## 3. Authentication Strategy
 
-The schema consists of:
+Authentication for the GraphQL API is implemented using **JWT (JSON Web Tokens)**.
 
-Scalars
+After a user successfully logs in, the server issues a JWT token that must be included in subsequent API requests.
 
-Enums
+The token is sent through the HTTP Authorization header using the Bearer token format.
 
-Object Types
+Authentication flow:
 
-Input Types
+1. The user logs in through the authentication service.
+2. The server generates a JWT token.
+3. The client stores the token.
+4. Each GraphQL request includes the token in the Authorization header.
+5. Middleware verifies the token and extracts the user information.
 
-Queries
+function authMiddleware(req) {
+  const token = req.headers.authorization;
+  const user = verifyToken(token);
+  return user;
+}
 
-Mutations
+If the token is invalid or missing, the request is rejected.
 
 ---
 
-# 5️ Core Types
+## 4. GraphQL Schema Design
+
+The GraphQL schema defines the structure of the API, including the available data types, queries, and mutations.
+
+The Inventory API schema includes the following components:
+
+* Object Types representing system entities
+* Enumerations representing fixed value sets
+* Input types for mutation operations
+* Query operations for retrieving data
+* Mutation operations for modifying data
+
+The schema ensures type safety and clearly defines the relationships between entities.
 
 ---
 
-## 5.1 User
+## 5. Core Entities
 
-```graphql
+The GraphQL API manages several key entities within the inventory system.
+
+### Users
+
+Users represent system participants such as administrators, managers, and staff members.
+
+User records store information such as:
+
+* User identifier
+* Name
+* Email
+* Role
 type User {
-  Userid: ID!
-  name: String!
-  email: String!
-  role: UserRole!
-  
-}
-```
-
-### Enum
-
-```graphql
-enum UserRole {
-  ADMIN
-  MANAGER
-  STAFF
-}
-```
-
----
-
-## 5.2 Category
-
-```graphql
-type Category {
-  Categoryid: ID!
-  name: String!
-  description: String
-  products: [Product!]!
-  
-}
-```
-
----
-
-## 5.3 Product
-
-```graphql
-type Product {
-  Productid: ID!
-  name: String!
-  sku: String!
-  price: Float!
-  quantity: Int!
-  category: Category!
-}
-```
-
----
-
-## 5.4 Order
-
-```graphql
-type Order {
-  Orderid: ID!
-  user: User!
-  items: [OrderItem!]!
-  totalAmount: Float!
-  status: OrderStatus!
-  
-}
-```
-
-### Enum
-
-```graphql
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  CANCELLED
-  DELIVERED
-}
-```
-
----
-
-## 5.5 OrderItem
-
-```graphql
-type OrderItem {
-  OrderItemid: ID!
-  product: Product!
-  quantity: Int!
-  price: Float!
-}
-```
-
----
-
-## 5.6 InventoryJob (Long Running Process)
-
-```graphql
-type InventoryJob {
-  id: ID!
-  status: JobStatus!
-
-}
-```
-
-```graphql
-enum JobStatus {
-  QUEUED
-  RUNNING
-  COMPLETED
-  FAILED
-}
-```
-
----
-
-# 6️ Query Design
-
-All read operations.
-
----
-
-## 6.1 User Queries
-
-```graphql
-type Query {
-  me: User
-  users: [User!]!
-  user(id: ID!): User
-}
-```
-
----
-
-## 6.2 Category Queries
-
-```graphql
-type Query {
-  categories: [Category!]!
-  category(id: ID!): Category
-}
-```
-
----
-
-## 6.3 Product Queries
-
-```graphql
-type Query {
-  products: [Product!]!
-  product(id: ID!): Product
-  productsByCategory(categoryId: ID!): [Product!]!
-}
-```
-
----
-
-## 6.4 Order Queries
-
-```graphql
-type Query {
-  orders: [Order!]!
-  order(id: ID!): Order
-}
-```
-
----
-
-## 6.5 Job Query (Long Running)
-
-```graphql
-type Query {
-  inventoryJob(id: ID!): InventoryJob
-}
-```
-
----
-
-# 7️ Mutation Design
-
-All write operations.
-
----
-
-## 7.1 User Mutations
-
-```graphql
-type Mutation {
-  createUser(input: CreateUserInput!): User!
-  updateUser(id: ID!, input: UpdateUserInput!): User!
-  deleteUser(id: ID!): Boolean!
-}
-```
-
-### Inputs
-
-```graphql
-input CreateUserInput {
-  name: String!
-  email: String!
-  password: String!
-  role: UserRole!
-}
-```
-
-```graphql
-input UpdateUserInput {
+  id: ID
   name: String
   email: String
   role: UserRole
 }
-```
 
-> GraphQL naturally supports **partial updates** because fields are optional in UpdateUserInput.
+User roles determine the level of access to the system.
 
 ---
 
-## 7.2 Category Mutations
+### Categories
 
-```graphql
-type Mutation {
-  createCategory(input: CreateCategoryInput!): Category!
-  updateCategory(id: ID!, input: UpdateCategoryInput!): Category!
-  deleteCategory(id: ID!): Boolean!
+Categories group products into logical classifications.
+
+Each category includes:
+
+* Categoryid
+* name
+* description
+
+type Category {
+  Categoryid: ID
+  name: String
+  description: String
 }
-```
+
+Categories help organize products within the inventory system.
 
 ---
 
-## 7.3 Product Mutations
+### Products
 
-```graphql
-type Mutation {
-  createProduct(input: CreateProductInput!): Product!
-  updateProduct(id: ID!, input: UpdateProductInput!): Product!
-  deleteProduct(id: ID!): Boolean!
+Products represent items available in the inventory.
+
+Product records contain:
+
+* Productid
+* Name
+* SKU 
+* Price
+* Quantity
+
+
+type Product {
+  Productid: ID
+  name: String
+  sku: String
+  price: Float
+  quantity: Int
 }
-```
+Products are linked to categories and may be included in customer orders.
 
 ---
 
-## 7.4 Order Mutations
+### Orders
 
-```graphql
-type Mutation {
-  createOrder(input: CreateOrderInput!): Order!
-  updateOrderStatus(id: ID!, status: OrderStatus!): Order!
+Orders represent purchase transactions created by users.
+
+Each order contains:
+
+* Orderid
+* TotalAmount
+* Orderstatus
+
+type Order {
+  id: ID
+  totalAmount: Float
+  status: OrderStatus
 }
-```
+
+Orders move through various states such as pending, processing, shipped, or completed.
 
 ---
 
-## 7.5 Inventory Job Mutation (Long Running Process)
+### Order Items
 
-```graphql
-type Mutation {
-  startInventorySync: InventoryJob!
-}
-```
+Order items represent individual products within an order.
 
-### Workflow
+Each item contains:
 
-1. Client calls `startInventorySync`
-2. Returns job ID
-3. Client polls `inventoryJob(id)`
-4. Status transitions:
+* Product reference
+* Quantity ordered
+* Price at the time of purchase
 
-   * QUEUED → RUNNING → COMPLETED
+This structure allows a single order to contain multiple products.
 
 ---
 
-# 8️ Nested Resource Design
+### Inventory Jobs
 
-GraphQL eliminates traditional nested REST routes like:
+Inventory jobs represent background processes used to perform long-running operations such as synchronization tasks.
 
-```
-/categories/:id/products
-```
+Each job contains:
 
-Instead, nested resources are resolved via type relations:
+* Job identifier
+* Current status
+* Execution progress
 
-```graphql
+Clients can monitor job progress by querying the job status.
+
+---
+
+## 6. Query Design
+
+Queries are used to retrieve data from the system.
+
+The GraphQL API provides queries for:
+
+* Retrieving the current authenticated user
+* Listing users
+* Fetching categories
+* Fetching products
+* Fetching products by category
+* Retrieving orders
+* Checking background job status
+
 query {
-  category(id: "1") {
+  products {
     id
     name
-    products {
-      id
-      name
-      price
+    price
+  }
+}
+
+Queries support nested data retrieval, allowing clients to fetch related data within a single request.
+
+---
+
+## 7. Mutation Design
+
+Mutations are used to modify data within the system.
+
+The GraphQL API supports mutations for:
+
+* Creating users
+* Updating users
+* Deleting users
+* Creating categories
+* Updating categories
+* Deleting categories
+* Creating products
+* Updating products
+* Deleting products
+* Creating orders
+* Updating order status
+* Starting inventory synchronization jobs
+
+mutation {
+  createProduct(
+    input: {
+      name: "Laptop"
+      sku: "LAP001"
+      price: 1000
+      quantity: 10
+    }
+  ) {
+    id
+    name
+  }
+}
+
+
+
+Mutations ensure that data updates follow controlled workflows and validation rules.
+
+---
+
+## 8. Nested Resource Design
+
+GraphQL allows clients to request related data in a single query.
+
+Instead of making multiple API calls to retrieve related resources, the client can request nested objects directly from the server.
+
+For example, when retrieving a category, the client can also request all products associated with that category within the same query.
+
+This significantly reduces the number of network requests required.
+
+query {
+  order(id: "10") {
+    id
+    items {
+      product {
+        name
+        price
+      }
+      quantity
     }
   }
 }
-```
+
 
 ---
 
-# 9️ Pagination Strategy
+## 9. Error Handling Strategy
 
-For scalability:
+GraphQL returns structured error responses when operations fail.
 
-```graphql
-type ProductConnection {
-  items: [Product!]!
-  totalCount: Int!
-  hasNextPage: Boolean!
-}
-```
+Errors include:
 
-Query:
+* A human-readable error message
+* An error code describing the issue
+* Additional metadata for debugging
 
-```graphql
-products(limit: Int!, offset: Int!): ProductConnection!
-```
-
----
-
-# 10 Error Handling Strategy
-
-GraphQL returns:
-
-```json
 {
-  "data": null,
   "errors": [
     {
       "message": "Unauthorized",
-      "extensions": {
-        "code": "UNAUTHENTICATED"
-      }
+      "code": "UNAUTHENTICATED"
     }
   ]
 }
-```
 
-Standard error codes:
+Common error categories include:
 
-* UNAUTHENTICATED
-* FORBIDDEN
-* NOT_FOUND
-* BAD_USER_INPUT
-* INTERNAL_SERVER_ERROR
+* Authentication errors
+* Authorization failures
+* Invalid input data
+* Resource not found
+* Internal server errors
 
----
-
-# 1️1️ Authorization Rules
-
-| Role    | Permissions                  |
-| ------- | ---------------------------- |
-| ADMIN   | Full access                  |
-| MANAGER | Manage products & categories |
-| STAFF   | Read-only + create orders    |
-
-Authorization enforced in resolvers using JWT role claim.
+This consistent error format makes it easier for clients to handle failures.
 
 ---
 
-# 1️2️ GraphQL vs REST in Inventory
+## 10. Authorization Rules
 
-| Feature       | REST           | GraphQL       |
-| ------------- | -------------- | ------------- |
-| Endpoint      | Multiple       | Single        |
-| Over-fetching | Possible       | Avoided       |
-| Nested data   | Multiple calls | Single query  |
-| Versioning    | v1/v2          | Evolve schema |
+Access control is enforced based on user roles.
 
----
+The system defines the following roles:
 
-# 1️3️ Security Considerations
+Admin – full system access
+Manager – can manage products and categories
+Staff – can view data and create orders
 
-* Query depth limiting
-* Query complexity limiting
-* Rate limiting
-* JWT verification middleware
-* Disable introspection in production
+Authorization checks are performed in GraphQL resolvers using the role information contained in the JWT token.
 
 ---
 
-# 1️4️ Final Architecture Flow
+## 12. GraphQL vs REST
 
-Client → `/graphql` → Auth Middleware → Resolvers → Services → PostgreSQL
+GraphQL provides several advantages compared to traditional REST APIs.
+
+REST APIs typically require multiple endpoints and multiple network calls to retrieve related data.
+
+GraphQL allows clients to request exactly the data they need using a single endpoint.
+
+This reduces network overhead and simplifies frontend development.
+
+---
+
+## 13. System Architecture Flow
+
+The GraphQL request flow follows these steps:
+
+Client Application → GraphQL Endpoint → Authentication Middleware → Resolvers → Service Layer → PostgreSQL Database
+
+The resolver layer translates GraphQL operations into service calls that interact with the database.
+
+Client Application
+↓
+GraphQL Endpoint
+↓
+Authentication Middleware
+↓
+Resolvers
+↓
+Service Layer
+↓
+PostgreSQL Database
+
+Resolvers translate GraphQL operations into database queries.
 
 ---
 
-# 15 Performance & Security
+## 14. Performance Optimization
 
-* Security measures:
+Performance improvements are implemented through several strategies:
 
-* Query depth limiting
+* Query optimization
+* Database indexing
+* Efficient pagination
+* Caching frequently accessed data
+* Background processing for long-running tasks
 
-* Query complexity limiting
-
-* Rate limiting
-
-* Disable introspection in production
-
-* JWT validation middleware
-
-
-# 16 Versioning Strategy
-
-* Unlike REST (/v1), GraphQL evolves via:
-
-* Adding new fields
-
-* Deprecating old fields
-
-* Maintaining backward compatibility
-
-Example:
-
-type Product {
-  price: Float @deprecated(reason: "Use priceWithTax instead")
-}
-
+These techniques ensure the system can handle increasing data volumes efficiently.
 
 
 ---
+

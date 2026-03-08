@@ -10,6 +10,7 @@ It supports standard CRUD operations, nested resources, partial and full updates
 ## 1. Overview
 
 * **Base URL:** `api/v1`
+* **Future URL:** `api/v2`
 * **Format:** JSON
 * **Authentication:** JWT Bearer Token (except login/signup)
 * **Supports:** CRUD operations, nested resources, search, partial updates, long-running jobs
@@ -35,9 +36,11 @@ It supports standard CRUD operations, nested resources, partial and full updates
 /api/v1/users
 /api/v1/categories
 /api/v1/products
+/api/v2/products
 /api/v1/inventory
 /api/v1/orders
 /api/v1/orders/{orderId}/items
+
 ```
 
 ---
@@ -108,6 +111,31 @@ It supports standard CRUD operations, nested resources, partial and full updates
 | Add Item    | POST   | `/orders/{orderId}/items`          |
 | Update Item | PATCH  | `/orders/{orderId}/items/{itemId}` |
 | Delete Item | DELETE | `/orders/{orderId}/items/{itemId}` |
+
+* **Swagger will document:**
+
+`Users`
+`GET /users`
+`POST /users`
+`GET /users/{id}`
+`PATCH /users/{id}`
+`DELETE /users/{id}`
+
+
+`Products`
+ `GET /products`
+ `POST /products`
+ `GET /products/{id}`
+ `PATCH /products/{id}`
+ `DELETE /products/{id}`
+
+
+`Orders`
+`GET /orders`
+`POST /orders`
+`GET /orders/{id}`
+
+Swagger shows all these in a structured UI
 
 ---
 
@@ -275,6 +303,183 @@ GET /products?search=laptop&categoryid=uuid-cat-1&price=500
 | 404         | Resource not found                 |
 | 409         | Conflict (duplicate entry)         |
 | 500         | Internal server error              |
+
+
+## 11 API Versioning Strategy (v1 → v2 Evolution)
+
+* API Versioning is a technique used to manage changes in an API without breaking existing applications.  
+* The Inventory Management System uses **URL-based versioning** for clarity and simplicity.
+
+### Why API Versioning Is Important
+
+* Without versioning:
+
+- You change the API.
+
+- Existing mobile apps or frontend apps break.
+
+- Users experience errors.
+
+* With versioning:
+
+- Old clients keep using v1
+
+- New clients can use v2
+
+*This keeps the system stable and backward compatible.*
+
+* URL-Based Versioning
+
+- Your system uses URL versioning, which is the most common and easiest method.
+
+- The version number is included in the URL.
+
+*Example structure:*
+
+/api/v1/
+/api/v2/
+
+* Example Endpoints
+
+* **Version 1 (Current API)**
+
+GET  /api/v1/products
+POST /api/v1/products
+GET  /api/v1/products/{id}
+
+* Example request:
+
+GET /api/v1/products/101
+
+This returns product information.
+
+
+* **Version 2 (Future API)**
+
+GET  /api/v2/products
+POST /api/v2/products
+GET  /api/v2/products/{id}
+
+* Example request:
+
+GET /api/v2/products/101
+
+Version 2 may include new features or changes.
+
+* **Example Difference Between v1 and v2**
+
+**v1 Response**
+{
+  `"productid": "P101",`
+  `"name": "Laptop",`
+  `"price": 50000`
+}
+
+
+**v2 Response (Improved)**
+
+{
+  `"productid": "P101",`
+  `"name": "Laptop",`
+  `"price": 50000,`
+  `"currency": "INR",`
+  `"stock": 120`
+}
+
+The Inventory Management System uses **URL-based versioning** to support API evolution from **v1 to v2** while maintaining backward. compatibility and ensuring stable integrations for existing clients.
+
+---
+
+## 12. OpenAPI (Swagger) 
+
+* **What Swagger Is (Simple Meaning)**
+
+- Swagger is a tool that helps you describe, document, and test your APIs.
+
+* Think of Swagger as a manual + testing tool for your API.
+
+* **Without Swagger:**
+
+- Developers must read backend code to understand APIs.
+
+* **With Swagger:**
+
+- Developers see all APIs in one interface
+
+* Example API list in Swagger:
+
+`GET    /api/v1/products`
+`POST   /api/v1/products`
+`GET    /api/v1/products/{id}`
+`DELETE /api/v1/products/{id}`
+
+* **Why Swagger Is Used**
+
+* When an API grows large (like your Inventory System), it becomes hard to remember:
+
+- endpoints
+
+- request format
+
+- response format
+
+- parameters
+
+**Swagger solves this.**
+
+* Example Problem Without Swagger
+
+**The developer opens documentation and sees:**
+
+`POST /products`
+
+Request body:
+
+{
+  "name": "Wireless Mouse",
+  "price": 599.99,
+  "categoryId": 2,
+  "sku": "WM-2026"
+}
+
+
+Everything is automatically documented.
+
+* **What Swagger Actually Does**
+
+Swagger helps with three main things:
+
+| Feature         | Explanation                   |
+| --------------- | ----------------------------- |
+| Documentation   | Shows all APIs clearly        |
+| Testing         | Run API requests from browser |
+| Standard format | Uses OpenAPI specification    |
+
+
+* **Example of Swagger Documentation**
+
+* Example API:
+
+`GET /api/v1/products`
+
+`Swagger shows:`
+
+`Endpoint`
+
+`GET /products`
+
+Response
+[
+  {
+    "id": 10,
+    "name": "Wireless Mouse",
+    "price": 599.99
+  }
+]
+
+---
+
+
 
 
 

@@ -1,314 +1,277 @@
-# Inventory – gRPC Service Definition
+# gRPC API Design Documentation
+
+## 1. Overview
+
+The Inventory system provides a **gRPC API** for high-performance communication between internal services.
+
+gRPC is used for **service-to-service communication** in the backend architecture. It is built on **HTTP/2** and uses **Protocol Buffers (Protobuf)** for efficient data serialization.
+
+Key advantages of using gRPC:
+
+* High performance and low latency
+* Strongly typed contracts
+* Efficient binary communication
+* Built-in support for streaming
+* Automatic code generation
+
+In the Inventory system, gRPC can be used by internal services such as:
+
+* Order service
+* Inventory service
+* Product service
+* Notification service
 
 ---
 
-# 1 Overview
+# 2. gRPC Communication Model
 
-StockSphere uses **gRPC** for high-performance internal communication between services.
+gRPC uses **Remote Procedure Calls (RPC)** where a client calls methods on a remote server as if they were local functions.
 
-gRPC is used for:
+Communication flow:
 
-* Internal microservice communication
-* Inventory updates
-* Order processing
-* Background job management
-* High-throughput operations
+Client Service → gRPC Client → Network → gRPC Server → Business Logic → Database
 
-Protocol:
-
-* HTTP/2
-* Protocol Buffers (Protobuf)
-* Port: `4000`
+The contract between services is defined using **Protocol Buffers (.proto files)**.
 
 ---
 
-# 2 Architecture Context
+# 3. Protocol Buffers
 
-```
-Client → REST/GraphQL API → gRPC Services → PostgreSQL
-```
+Protocol Buffers (Protobuf) define the structure of messages exchanged between services.
 
-* REST/GraphQL acts as API gateway
-* gRPC used internally between services
-* Strongly typed contracts using `.proto`
+They provide:
 
----
+* Compact binary serialization
+* Strong typing
+* Cross-language support
 
-# 3 Package & Versioning
-
-```proto
-syntax = "proto3";
-
-package Inventory.v1;
-```
-
-Versioning strategy:
-
-* v1 → initial release
-* Future versions: `Inventory.v2`
-* Maintain backward compatibility
-
----
-
-# 4 Common Message Types
-
----
-
-## 4.1 Empty
-
-```proto
-message Empty {}
-```
-
----
-
-## 4.2 Standard Response
-
-```proto
-message DeleteResponse {
-  bool success = 1;
-  string message = 2;
-}
-```
-
----
-
-# 5 UserService
-
-Handles internal user operations.
-
----
-
-## Service Definition
-
-```proto
-service UserService {
-  rpc CreateUser (CreateUserRequest) returns (UserResponse);
-  rpc GetUser (GetUserRequest) returns (UserResponse);
-  rpc ListUsers (Empty) returns (UserListResponse);
-  rpc UpdateUser (UpdateUserRequest) returns (UserResponse);
-  rpc DeleteUser (DeleteUserRequest) returns (DeleteResponse);
-}
-```
-
----
-
-## Messages
-
-```proto
-message User {
-  string id = 1;
-  string name = 2;
-  string email = 3;
-  string role = 4;
-  string created_at = 5;
-  string updated_at = 6;
-}
-```
-
----
-
-# 6 CategoryService
-
-```proto
-service CategoryService {
-  rpc CreateCategory (CreateCategoryRequest) returns (CategoryResponse);
-  rpc GetCategory (GetCategoryRequest) returns (CategoryResponse);
-  rpc ListCategories (Empty) returns (CategoryListResponse);
-  rpc DeleteCategory (DeleteCategoryRequest) returns (DeleteResponse);
-}
-```
-
----
-
-# 7 ProductService
-
-```proto
-service ProductService {
-  rpc CreateProduct (CreateProductRequest) returns (ProductResponse);
-  rpc GetProduct (GetProductRequest) returns (ProductResponse);
-  rpc ListProducts (ProductFilterRequest) returns (ProductListResponse);
-  rpc UpdateProduct (UpdateProductRequest) returns (ProductResponse);
-  rpc DeleteProduct (DeleteProductRequest) returns (DeleteResponse);
-}
-```
-
----
-
-## Product Message
+Example message structure:
 
 ```proto
 message Product {
-  string id = 1;
+  int32 id = 1;
   string name = 2;
   string sku = 3;
   double price = 4;
   int32 quantity = 5;
-  string category_id = 6;
-  string created_at = 7;
 }
 ```
 
+Each field has a unique identifier which ensures backward compatibility.
+
 ---
 
-# 8 OrderService
+# 4. gRPC Service Design
+
+Services define the operations that clients can call remotely.
+
+Example service definition:
 
 ```proto
-service OrderService {
-  rpc CreateOrder (CreateOrderRequest) returns (OrderResponse);
-  rpc GetOrder (GetOrderRequest) returns (OrderResponse);
-  rpc ListOrders (ListOrdersRequest) returns (OrderListResponse);
-  rpc UpdateOrderStatus (UpdateOrderStatusRequest) returns (OrderResponse);
+service ProductService {
+  rpc GetProduct (ProductRequest) returns (ProductResponse);
+  rpc CreateProduct (CreateProductRequest) returns (ProductResponse);
 }
 ```
 
+This allows internal services to retrieve or create products through efficient RPC calls.
+
 ---
 
-## Order Message
+# 5. Request and Response Messages
+
+gRPC methods use structured request and response messages.
+
+Example request:
 
 ```proto
-message Order {
-  string id = 1;
-  string user_id = 2;
-  repeated OrderItem items = 3;
-  double total_amount = 4;
-  string status = 5;
-  string created_at = 6;
+message ProductRequest {
+  int32 product_id = 1;
 }
 ```
 
----
-
-# 9 InventoryService
-
-Handles stock adjustment and synchronization.
-
----
-
-## Unary Example
+Example response:
 
 ```proto
-service InventoryService {
-  rpc AdjustStock (AdjustStockRequest) returns (ProductResponse);
+message ProductResponse {
+  Product product = 1;
 }
+```
+
+This ensures strongly typed communication between services.
+
+---
+
+# 6. gRPC Communication Types
+
+gRPC supports four types of communication patterns.
+
+### Unary RPC
+
+The client sends a single request and receives a single response.
+
+Example use case:
+
+* Fetch product details
+
+---
+
+### Server Streaming
+
+The client sends one request and receives a stream of responses.
+
+Example use case:
+
+* Streaming inventory updates
+
+---
+
+### Client Streaming
+
+The client sends multiple messages and receives a single response.
+
+Example use case:
+
+* Bulk product uploads
+
+---
+
+### Bidirectional Streaming
+
+Both client and server send streams of messages simultaneously.
+
+Example use case:
+
+* Real-time inventory synchronization
+
+---
+
+# 7. Authentication Strategy
+
+Authentication between services is handled using **JWT tokens or service authentication keys**.
+
+The client service attaches authentication metadata to the request.
+
+Example metadata header:
+
+```
+authorization: Bearer <service_token>
+```
+
+The gRPC server verifies the token before processing the request.
+
+---
+
+# 8. Error Handling
+
+gRPC provides standardized error codes.
+
+Common error codes include:
+
+| Code              | Description                    |
+| ----------------- | ------------------------------ |
+| UNAUTHENTICATED   | Invalid or missing credentials |
+| PERMISSION_DENIED | Insufficient permissions       |
+| NOT_FOUND         | Resource not found             |
+| INVALID_ARGUMENT  | Invalid request parameters     |
+| INTERNAL          | Server error                   |
+
+Example error response:
+
+```
+status: NOT_FOUND
+message: "Product not found"
 ```
 
 ---
 
-## Server Streaming Example (Inventory Sync)
+# 9. Performance Advantages
+
+gRPC provides several performance improvements compared to traditional REST APIs.
+
+Key optimizations include:
+
+* Binary serialization using Protocol Buffers
+* Multiplexed connections over HTTP/2
+* Reduced network overhead
+* Efficient service-to-service communication
+
+These improvements make gRPC suitable for **microservice architectures**.
+
+---
+
+# 10. Security Considerations
+
+Security is implemented using several mechanisms.
+
+Security measures include:
+
+* TLS encryption for secure communication
+* Token-based authentication
+* Input validation
+* Rate limiting
+* Access control between services
+
+These protections ensure secure communication within the system.
+
+---
+
+# 11. Integration with Inventory Architecture
+
+Within the Inventory system architecture, gRPC is primarily used for **internal service communication**, while REST and GraphQL are used for **external client communication**.
+
+Example architecture:
+
+Client Applications
+↓
+REST / GraphQL API Gateway
+↓
+Backend Services
+↓
+gRPC Communication
+↓
+PostgreSQL Database
+
+This hybrid approach combines the flexibility of REST/GraphQL with the performance of gRPC.
+
+---
+
+# 12. Versioning Strategy
+
+gRPC APIs evolve through **Protocol Buffer versioning**.
+
+Best practices include:
+
+* Adding new fields with new field numbers
+* Avoiding removal of existing fields
+* Marking deprecated fields when necessary
+* Maintaining backward compatibility
+
+Example:
 
 ```proto
-service InventoryService {
-  rpc SyncInventory (SyncRequest) returns (stream SyncProgressResponse);
+message Product {
+  int32 id = 1;
+  string name = 2;
+  double price = 3;
+  string currency = 4; 
 }
 ```
 
-### Why Streaming?
-
-* Large inventory updates
-* Real-time progress updates
-* Efficient for long-running operations
+New fields can be added without breaking older clients.
 
 ---
 
-# 10 JobService (Long Running Operations)
+# 13. Benefits of Using gRPC in Inventory System
 
-```proto
-service JobService {
-  rpc StartInventoryJob (Empty) returns (JobResponse);
-  rpc GetJobStatus (GetJobRequest) returns (JobResponse);
-  rpc StreamJobProgress (GetJobRequest) returns (stream JobProgressResponse);
-}
-```
+Using gRPC provides several benefits for the inventory system:
 
----
+* Efficient communication between microservices
+* Strong contract-based APIs
+* Faster data transfer
+* Scalable service architecture
+* Cross-language compatibility
 
-## Job Message
-
-```proto
-message Job {
-  string id = 1;
-  string type = 2;
-  string status = 3;
-  string created_at = 4;
-  string completed_at = 5;
-}
-```
+This makes gRPC an ideal choice for internal backend communication.
 
 ---
-
-# 11 Communication Patterns Used
-
-| Pattern          | Used For                |
-| ---------------- | ----------------------- |
-| Unary            | CRUD operations         |
-| Server Streaming | Inventory sync progress |
-| Server Streaming | Job progress tracking   |
-
-No client streaming required in v1.
-
----
-
-# 12 Authentication
-
-JWT passed in gRPC metadata:
-
-```
-authorization: Bearer <token>
-```
-
-Extracted in:
-
-* gRPC interceptor
-* Role-based authorization applied at service level
-
----
-
-# 13 Error Handling
-
-Standard gRPC status codes:
-
-| Code              | Meaning           |
-| ----------------- | ----------------- |
-| OK                | Success           |
-| INVALID_ARGUMENT  | Bad request       |
-| NOT_FOUND         | Resource missing  |
-| UNAUTHENTICATED   | Invalid JWT       |
-| PERMISSION_DENIED | Unauthorized role |
-| INTERNAL          | Server error      |
-
-Example (conceptual):
-
-```
-status.Error(codes.NotFound, "Product not found")
-```
-
----
-
-# 14 Why gRPC for Inventory?
-
-| Feature       | REST     | gRPC   |
-| ------------- | -------- | ------ |
-| Transport     | HTTP/1.1 | HTTP/2 |
-| Payload       | JSON     | Binary |
-| Speed         | Medium   | High   |
-| Streaming     | Limited  | Native |
-| Strong typing | Weak     | Strong |
-
-gRPC is ideal for:
-
-* Microservices
-* High-performance internal APIs
-* Background processing
-
----
-
-# 15 Deployment Model
-
-* gRPC services run inside Docker containers
-* Internal communication only
-* Not exposed publicly
-* API Gateway handles external traffic
-
----
-

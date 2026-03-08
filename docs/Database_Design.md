@@ -1,5 +1,4 @@
 
-
 # Inventory Management — Database Design (PostgreSQL)
 
 ---
@@ -53,7 +52,8 @@ An Inventory Management System is designed to manage:
 
 ### Diagram
 
-![ERD](../assets/ER_DIAGRAM.drawio.png)
+![ERD](../assets/ER_DIAGRAM.drawio (1).png)
+
 
 ---
 
@@ -82,7 +82,8 @@ An Inventory Management System is designed to manage:
 | address     | VARCHAR(255) | NOT NULL    |
 
 **Primary Key:** `userid`
-
+* A Primary Key is a column (or set of columns) that uniquely identifies each row in a table.
+* No two rows can have the same primary key value, and it cannot be NULL.
 ---
 
 ### 5.2 `products` — Stores product information
@@ -98,6 +99,8 @@ An Inventory Management System is designed to manage:
 
 **Primary Key:** `productsid`
 **Foreign Key:** `categoryid → categories(categoriesid)`
+* A Foreign Key (FK) is a column in one table that references the Primary Key of another table.
+* It creates a relationship between two tables and ensures data integrity.
 
 ---
 
@@ -155,6 +158,138 @@ An Inventory Management System is designed to manage:
 
 * `orderid → orders(ordersid)`
 * `productid → products(productsid)`
+
+## 6. Database Indexing Strategy
+
+* Indexes are used to improve the performance of database queries by allowing the database engine to locate data quickly without scanning the entire table.
+* The Inventory Management System uses PostgreSQL indexing strategies to optimize frequently executed queries such as product searches, user authentication, and inventory lookups.
+
+### 1. Primary Key Indexes in PostgreSQL
+
+* In PostgreSQL, when you define a PRIMARY KEY, the database automatically creates a unique **B-tree index** for that column.
+
+* This index is used to:
+
+A Primary Key guarantees that every row in the table is unique.
+
+Because PostgreSQL automatically creates an index on the primary key, searches become very fast.
+
+Example query:
+SELECT * FROM users WHERE id = 2;
+
+* Without an index:
+
+Database scans every row (slow).
+
+* With primary key index:
+
+Database directly finds the row (very fast).
+
+
+You do not need to manually create an index for a primary key.
+
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    sku VARCHAR(100) UNIQUE NOT NULL,
+    quantity INTEGER NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+   
+);
+
+* What PostgreSQL does internally:
+
+Creates the table.
+
+Creates a unique index automatically.
+
+CREATE UNIQUE INDEX products_pkey
+ON products (id);
+
+* We use a Primary Key index to:
+
+1.  rows uniquely
+
+2.  searches
+
+
+### 2. Unique Indexes
+
+A Unique Index ensures that the values in a column (or group of columns) are unique.
+It also improves search performance because PostgreSQL can quickly locate rows using the index.
+
+* Example Use Case
+
+In a products table, every product usually has a Productid.
+Two products should never have the same Productid.
+
+CREATE UNIQUE INDEX idx_products_productid
+ON products(productid);
+
+* This does two things:
+
+1.  duplicate values
+
+2.  an index for fast searching
+
+| productid | name   | sku   | price |
+| -- | ------ | ----- | ----- |
+| 1  | Laptop | LP100 | 50000 |
+| 2  | Mouse  | MS200 | 500   |
+
+* If someone tries to insert a duplicate SKU:
+ * PostgreSQL will return an error like:
+   ERROR: duplicate key value violates unique constraint
+
+* Benefits of Unique Index
+- Prevents Duplicate Data
+- The unique index allows PostgreSQL to find the row instantly.
+- It protects the database from invalid duplicate records.
+
+### 3. Search Indexes
+
+A Search Index is created on columns that are frequently used in search conditions (WHERE clause).
+
+It helps the database find rows quickly instead of scanning the entire table.
+
+CREATE INDEX idx_products_name
+ON products(name);
+
+- This creates an index on the name column of the products table.
+
+* Query Without Index
+SELECT * FROM products
+WHERE name = 'Laptop';
+
+* If there is no index:
+
+- PostgreSQL performs a Sequential Scan
+
+- It checks every row in the table
+
+-  becomes slow for large tables
+
+* Example:
+If the table has 1 million rows, PostgreSQL must read all rows.
+
+
+* Query With Index
+
+* With the index:
+
+CREATE INDEX idx_products_name
+ON products(name);
+
+* Now PostgreSQL:
+
+- Uses the index to locate matching rows
+
+- Avoids scanning the entire table
+
+- Quiery becomes much faster
+
+
+
 
 ---
 
