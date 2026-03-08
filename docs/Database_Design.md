@@ -52,7 +52,7 @@ An Inventory Management System is designed to manage:
 
 ### Diagram
 
-![ERD](../assets/ER_DIAGRAM.drawio (1).png)
+![ER Diagram](../assets/er_diagram.png)
 
 
 ---
