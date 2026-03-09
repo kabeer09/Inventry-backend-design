@@ -64,19 +64,47 @@ If the token is invalid or missing, the request is rejected.
 
 ---
 
-## 4. GraphQL Schema Design
+## 4. GraphQL Core Concepts
 
-The GraphQL schema defines the structure of the API, including the available data types, queries, and mutations.
+**GraphQL Schema**
 
-The Inventory API schema includes the following components:
+The schema defines the structure of the API.
 
-* Object Types representing system entities
-* Enumerations representing fixed value sets
-* Input types for mutation operations
-* Query operations for retrieving data
-* Mutation operations for modifying data
+`type Product` { 
+ `id: ID!`
+ `name: String!`
+ `price: Float!`
+ `category: Category`
+ `supplier: Supplier`
+}`
 
-The schema ensures type safety and clearly defines the relationships between entities.
+**Query Type (Data Fetching)**
+
+Queries are used to read data.
+
+Example:
+
+`query` {
+ `products` {
+  `id`
+ ` name`
+  `price`
+ }
+}
+
+**Server response:**
+
+{
+ `"data":`{
+  `"products":`[
+   {
+    `"id":"1",`
+    `"name":"Laptop",`
+    `"price":1000`
+   }
+  ]
+ }
+}
 
 ---
 
@@ -243,17 +271,22 @@ The GraphQL API supports mutations for:
 * Starting inventory synchronization jobs
 
 mutation {
-  createProduct(
-    input: {
-      name: "Laptop"
-      sku: "LAP001"
-      price: 1000
-      quantity: 10
-    }
-  ) {
-    id
-    name
+ createProduct(
+   name:"Laptop"
+   price:1000
+ ) {
+   id
+   name
+ }
+}
+
+{
+ "data": {
+  "createProduct": {
+   "id":"123",
+   "name":"Laptop"
   }
+ }
 }
 
 
@@ -273,18 +306,19 @@ For example, when retrieving a category, the client can also request all product
 This significantly reduces the number of network requests required.
 
 query {
-  order(id: "10") {
-    id
-    items {
-      product {
-        name
-        price
-      }
-      quantity
-    }
-  }
+ user(id: 1) {
+   name
+   email
+   order {
+     orderid
+   }
+   products {
+     productid
+     name
+     price
+   }
+ }
 }
-
 
 ---
 
@@ -299,14 +333,12 @@ Errors include:
 * Additional metadata for debugging
 
 {
-  "errors": [
-    {
-      "message": "Unauthorized",
-      "code": "UNAUTHENTICATED"
-    }
-  ]
+ "errors":[
+  {
+   "message":"Product not found"
+  }
+ ]
 }
-
 Common error categories include:
 
 * Authentication errors
@@ -366,6 +398,129 @@ Service Layer
 PostgreSQL Database
 
 Resolvers translate GraphQL operations into database queries.
+
+
+
+### Step 1 — Client Sends Query
+
+Example: A user wants to fetch name and email.
+
+`query` {
+  `user(id: 1)` {
+    `name`
+    `email`
+  }
+}
+
+* The request goes to:
+
+`POST /graphql`
+
+
+{
+ ` "query": "query { user(id:1) { name email } }"`
+}
+
+* So the client only asks for the fields it needs.
+
+
+
+### Step 2 — GraphQL API Receives Request
+
+ The request hits the GraphQL endpoint.
+
+**Example endpoint:**
+
+http://localhost:4000/graphql
+
+**The GraphQL server:**
+
+* Receives the query
+
+* Parses it
+
+* Sends it to the schema validator
+
+### Step 3 — Schema Validation
+
+GraphQL checks if the query matches the schema.
+
+`type User` {
+ ` id: ID`
+  `name: String`
+ ` email: String`
+}
+
+`type Query` {
+  `user(id: ID): User`
+}
+
+
+**GraphQL checks:**
+
+* Does user query exist?
+
+* Does User type exist?
+
+* Are name and email valid fields?
+
+
+**If the query is invalid:**
+
+`query` {
+ ` product(id: 1) `{
+    `name,`
+   ` price`
+
+  }
+}
+
+**Error:**
+
+**`Cannot query field "age" on type "User"`**
+
+
+### Step 4 — Resolver Execution
+
+**Resolvers are functions that fetch data.**
+
+`const resolvers =` {
+  `Query:` {
+    `user: (parent, args) =>` {
+      `return getUserFromDB(args.id);`
+    }
+  }
+};
+
+
+### Step 5 — Database Query
+
+**Resolver fetches data from the database.**
+
+{
+  `"id": 1,`
+  `"name": "kabeer",`
+  `"email": "kabeer@email.com"`
+}
+
+### Step 6 — GraphQL Builds Response
+
+**GraphQL removes unnecessary fields and only returns what the client asked.**
+
+Client asked:
+
+`name`
+`email`
+
+
+{
+ `"data":` {
+   ` "user":` {
+     ` "name": "kabeer",`
+     ` "email": "kabeer@email.com"`
+    }
+  }
+}
 
 ---
 

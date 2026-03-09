@@ -273,17 +273,4 @@ These features make JWT a widely adopted authentication mechanism.
 
 ---
 
-# 12. Limitations of JWT
-
-Despite its advantages, JWT has some limitations.
-
-These include:
-
-* Token revocation can be difficult
-* Large tokens increase request size
-* Sensitive data must not be stored in payload
-
-Proper security practices are required to mitigate these issues.
-
----
 

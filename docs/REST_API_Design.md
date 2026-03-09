@@ -10,7 +10,7 @@ It supports standard CRUD operations, nested resources, partial and full updates
 ## 1. Overview
 
 * **Base URL:** `api/v1`
-* **Future URL:** `api/v2`
+* **new version URL:** `api/v2`
 * **Format:** JSON
 * **Authentication:** JWT Bearer Token (except login/signup)
 * **Supports:** CRUD operations, nested resources, search, partial updates, long-running jobs
@@ -261,8 +261,7 @@ Use query parameters:
 
 ```
 GET /api/v1/products?categoryId=2
-GET /api/v1/products?minPrice=500
-GET /api/v1/products?categoryId=2&minPrice=500
+GET /api/v1/products?productid=500
 ```
 
 Format: `?key=value&key=value`
