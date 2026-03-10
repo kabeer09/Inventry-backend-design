@@ -13,7 +13,7 @@ An Inventory Management System is designed to manage:
 * **Orders:** Transactional records of sales.
 * **Categories:** Logical grouping of products.
 * **Users:** System actors (Admin, Manager, Staff) and Customers.
-
+* **Inventory:** To track products 
 ---
 
 ## 2. Database Information
@@ -177,7 +177,7 @@ An Inventory Management System is designed to manage:
 | price     | NUMERIC(10,2) | NOT NULL                    |
 
 **Primary Key:** `itemsid`
-**Foreign Keys:**
+**Foreign Keys:-** 
 
 * `orderid → orders(ordersid)`
 * `productid → products(productsid)`
@@ -234,7 +234,7 @@ Because PostgreSQL automatically creates an index on the primary key, searches b
 - Without an index on the FK, queries like this are slow for large tables.
 
 -- Products table FKs
-`CREATE INDEX idx_products_category_id ON products(categoryid);`
+`CREATE INDEX idx_products_categoryid ON products(categoryid);`
 
 
 * A query searches for all products in category “Electronics”.

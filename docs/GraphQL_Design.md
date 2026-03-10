@@ -54,12 +54,6 @@ Authentication flow:
 4. Each GraphQL request includes the token in the Authorization header.
 5. Middleware verifies the token and extracts the user information.
 
-function authMiddleware(req) {
-  const token = req.headers.authorization;
-  const user = verifyToken(token);
-  return user;
-}
-
 If the token is invalid or missing, the request is rejected.
 
 ---
@@ -75,8 +69,9 @@ The schema defines the structure of the API.
  `name: String!`
  `price: Float!`
  `category: Category`
- `supplier: Supplier`
 }`
+
+**!* required fields**
 
 **Query Type (Data Fetching)**
 
@@ -188,7 +183,7 @@ Each order contains:
 * Orderstatus
 
 type Order {
-  id: ID
+  orderid: ID
   totalAmount: Float
   status: OrderStatus
 }
@@ -208,20 +203,6 @@ Each item contains:
 * Price at the time of purchase
 
 This structure allows a single order to contain multiple products.
-
----
-
-### Inventory Jobs
-
-Inventory jobs represent background processes used to perform long-running operations such as synchronization tasks.
-
-Each job contains:
-
-* Job identifier
-* Current status
-* Execution progress
-
-Clients can monitor job progress by querying the job status.
 
 ---
 
@@ -289,6 +270,15 @@ mutation {
  }
 }
 
+**What this means**
+
+* mutation → Used to change data (create, update, delete).
+
+* createProduct → A function defined in the GraphQL API.
+
+* name and price → Input parameters.
+
+* id, name → Fields we want returned in the response.
 
 
 Mutations ensure that data updates follow controlled workflows and validation rules.
@@ -320,6 +310,30 @@ query {
  }
 }
 
+**GraphQL Response**
+{
+  "data": {
+    "user": {
+      "name": "Bob",
+      "email": "Bob@email.com",
+      "order": {
+        "orderid": "ORD101"
+      },
+      "products": [
+        {
+          "productid": "P1",
+          "name": "Laptop",
+          "price": 1000
+        },
+        {
+          "productid": "P2",
+          "name": "Mouse",
+          "price": 20
+        }
+      ]
+    }
+  }
+}
 ---
 
 ## 9. Error Handling Strategy
@@ -351,33 +365,7 @@ This consistent error format makes it easier for clients to handle failures.
 
 ---
 
-## 10. Authorization Rules
-
-Access control is enforced based on user roles.
-
-The system defines the following roles:
-
-Admin – full system access
-Manager – can manage products and categories
-Staff – can view data and create orders
-
-Authorization checks are performed in GraphQL resolvers using the role information contained in the JWT token.
-
----
-
-## 12. GraphQL vs REST
-
-GraphQL provides several advantages compared to traditional REST APIs.
-
-REST APIs typically require multiple endpoints and multiple network calls to retrieve related data.
-
-GraphQL allows clients to request exactly the data they need using a single endpoint.
-
-This reduces network overhead and simplifies frontend development.
-
----
-
-## 13. System Architecture Flow
+## 10. System Architecture Flow
 
 The GraphQL request flow follows these steps:
 
@@ -431,7 +419,7 @@ Example: A user wants to fetch name and email.
 
 **Example endpoint:**
 
-http://localhost:4000/graphql
+http://localhost:3000/graphql
 
 **The GraphQL server:**
 
@@ -446,7 +434,7 @@ http://localhost:4000/graphql
 GraphQL checks if the query matches the schema.
 
 `type User` {
- ` id: ID`
+ ` userid: ID`
   `name: String`
  ` email: String`
 }
@@ -468,30 +456,21 @@ GraphQL checks if the query matches the schema.
 **If the query is invalid:**
 
 `query` {
- ` product(id: 1) `{
+ ` userid(id: 1) `{
     `name,`
-   ` price`
+   ` email`
 
   }
 }
 
 **Error:**
 
-**`Cannot query field "age" on type "User"`**
+**`Cannot query field "userid" on type "User"`**
 
 
 ### Step 4 — Resolver Execution
 
-**Resolvers are functions that fetch data.**
-
-`const resolvers =` {
-  `Query:` {
-    `user: (parent, args) =>` {
-      `return getUserFromDB(args.id);`
-    }
-  }
-};
-
+**A resolver is a function that resolves a field in a GraphQL query by fetching the required data from a database, API.**
 
 ### Step 5 — Database Query
 
@@ -499,8 +478,8 @@ GraphQL checks if the query matches the schema.
 
 {
   `"id": 1,`
-  `"name": "kabeer",`
-  `"email": "kabeer@email.com"`
+  `"name": "Bob",`
+  `"email": "Bob@email.com"`
 }
 
 ### Step 6 — GraphQL Builds Response
@@ -516,25 +495,12 @@ Client asked:
 {
  `"data":` {
    ` "user":` {
-     ` "name": "kabeer",`
-     ` "email": "kabeer@email.com"`
+     ` "name": "Bob",`
+     ` "email": "Bob@email.com"`
     }
   }
 }
 
----
-
-## 14. Performance Optimization
-
-Performance improvements are implemented through several strategies:
-
-* Query optimization
-* Database indexing
-* Efficient pagination
-* Caching frequently accessed data
-* Background processing for long-running tasks
-
-These techniques ensure the system can handle increasing data volumes efficiently.
 
 
 ---

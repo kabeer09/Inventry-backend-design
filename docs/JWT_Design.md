@@ -4,7 +4,7 @@
 
 The Inventory system uses **JWT (JSON Web Tokens)** for authentication and authorization.
 
-JWT is a compact and secure method for transmitting information between the client and the server. It allows stateless authentication, meaning the server does not need to store session information.
+JWT is a compact and secure method for transmitting information between the client and the server. It allows **stateless authentication**, meaning the server **does not need to store session information**.
 
 Key benefits of JWT authentication include:
 
@@ -30,7 +30,7 @@ The authentication process follows these steps:
 
 Authentication flow:
 
-Client → Login Request → Server Validation → JWT Generation → Client Stores Token → Authenticated API Requests
+`Client → Login Request → Server Validation → JWT Generation → Client Stores Token → Authenticated API Requests`
 
 ---
 
@@ -43,14 +43,14 @@ Header.Payload.Signature
 Example token format:
 
 ```
-xxxxx.yyyyy.zzzzz
+abc123.cba321.bca231
 ```
 
 Each part contains specific information.
 
 ---
 
-## 3.1 Header
+## 3.1 Header()----> abc123
 
 The header contains metadata about the token.
 
@@ -70,7 +70,7 @@ Fields:
 
 ---
 
-## 3.2 Payload
+## 3.2 Payload----> cba321
 
 The payload contains **claims**, which are pieces of information about the user.
 
@@ -98,7 +98,7 @@ The payload is encoded but **not encrypted**, so sensitive data should not be in
 
 ---
 
-## 3.3 Signature
+## 3.3 Signature---> bca231
 
 The signature ensures that the token has not been tampered with.
 
@@ -112,6 +112,7 @@ Signature = HMACSHA256(
   secret_key
 )
 ```
+**In JWT (JSON Web Token), the dot (.) is used as a separator between the three parts of the token.Each part is Base64URL encoded and separated by a dot (.).**
 
 The server verifies the signature before accepting the token.
 
@@ -148,15 +149,6 @@ When the server receives a request, the following validation steps occur:
 4. Decode payload information.
 5. Attach user information to the request context.
 
-Example middleware concept:
-
-```javascript
-function verifyToken(token) {
-  const decoded = jwt.verify(token, SECRET_KEY);
-  return decoded;
-}
-```
-
 If verification fails, the request is rejected.
 
 ---
@@ -174,7 +166,7 @@ Access tokens usually have a **short expiration time**, while refresh tokens las
 
 Example:
 
-Access token expiration → 15 minutes
+Access token expiration → 3600 sec
 Refresh token expiration → 7 days
 
 ---
@@ -203,41 +195,25 @@ The server checks the user role before executing protected operations.
 
 ---
 
-# 8. Security Considerations
 
-Several security practices are applied when using JWT.
-
-Important measures include:
-
-* Using strong secret keys
-* Setting token expiration times
-* Using HTTPS for all requests
-* Avoiding sensitive data in token payload
-* Implementing refresh token rotation
-* Protecting against token replay attacks
-
-These measures help prevent unauthorized access.
-
----
-
-# 9. Token Expiration and Renewal
+# 8. Token Expiration and Renewal
 
 JWT tokens should expire after a certain time to reduce security risks.
 
 Example expiration policy:
 
-Access Token → 15 minutes
+Access Token → 3600 sec
 Refresh Token → 7 days
 
 When the access token expires, the client requests a new token using the refresh token.
 
 Example flow:
 
-Client → Send Refresh Token → Server Validates → Issue New Access Token
+**Client → Send Refresh Token → Server Validates → Issue New Access Token**
 
 ---
 
-# 10. JWT in Inventory System Architecture
+# 9. JWT in Inventory System Architecture
 
 Within the Inventory system architecture, JWT is used to secure API requests.
 
@@ -259,15 +235,18 @@ JWT ensures that only authenticated users can access protected resources.
 
 ---
 
-# 11. Advantages of JWT Authentication
+# 10. Advantages of JWT Authentication
 
-Using JWT provides several advantages:
+**Using JWT provides several advantages:**
 
 * Stateless authentication
-* Scalable for distributed systems
-* Reduces server session storage
-* Supports microservice architectures
-* Easy integration with REST and GraphQL APIs
+
+* No session storage needed
+
+* Secure API communication
+
+* Works well with microservices
+
 
 These features make JWT a widely adopted authentication mechanism.
 

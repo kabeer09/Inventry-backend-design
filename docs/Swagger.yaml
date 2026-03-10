@@ -1,0 +1,231 @@
+openapi: 3.0.0
+info:
+  title: Inventory Backend Design API
+  description: API for managing products with request/response contracts
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Version 1
+  - url: http://localhost:3000/api/v2
+    description: Version 2
+
+tags:
+  - name: Products
+    description: Product management endpoints
+
+paths:
+
+  /products:
+    post:
+      tags:
+        - Products
+      summary: Create Product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+            example:
+              name: Wireless Mouse
+              description: Bluetooth enabled mouse
+              price: 599.99
+              categoryId: 2
+              sku: WM-2026
+      responses:
+        '201':
+          description: Product created
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get Product
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+              example:
+                id: 10
+                name: Wireless Mouse
+                description: Bluetooth enabled mouse
+                price: 599.99
+                categoryId: 2
+                sku: WM-2026
+
+    patch:
+      tags:
+        - Products
+      summary: Partial Update Product
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductPatch'
+            example:
+              price: 549.99
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              example:
+                message: Product updated successfully
+
+    put:
+      tags:
+        - Products
+      summary: Full Update Product
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+            example:
+              name: Wireless Mouse V2
+              description: Updated model
+              price: 649.99
+              categoryId: 2
+              sku: WM-2026-V2
+      responses:
+        '200':
+          description: Product updated successfully
+
+  # -------------------------
+  # Version 2 Endpoints
+  # -------------------------
+
+  /products/search:
+    get:
+      tags:
+        - Products
+      summary: Search Products (v2)
+      parameters:
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Filtered product list
+
+  /products/{id}/inventory:
+    get:
+      tags:
+        - Products
+      summary: Get Product Inventory (v2)
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Product inventory information
+          content:
+            application/json:
+              example:
+                productId: 10
+                stock: 120
+                warehouse: Delhi
+
+components:
+
+  parameters:
+
+    ProductId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+
+    ProductCreate:
+      type: object
+      required:
+        - name
+        - price
+        - categoryId
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        categoryId:
+          type: integer
+        sku:
+          type: string
+
+    ProductPatch:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        categoryId:
+          type: integer
+        sku:
+          type: string
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        categoryId:
+          type: integer
+        sku:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+      example:
+        status: 400
+        error: Bad Request
+        message: Price must be greater than 0
+        path: /products

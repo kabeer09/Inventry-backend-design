@@ -1,277 +1,383 @@
-# gRPC API Design Documentation
+#  What is gRPC
 
-## 1. Overview
+**gRPC (Google Remote Procedure Call)** is a **high-performance communication framework** used for **service-to-service communication**.
 
-The Inventory system provides a **gRPC API** for high-performance communication between internal services.
+It was developed by Google.
 
-gRPC is used for **service-to-service communication** in the backend architecture. It is built on **HTTP/2** and uses **Protocol Buffers (Protobuf)** for efficient data serialization.
+gRPC allows a client to **call functions on a remote server as if they were local functions**.
 
-Key advantages of using gRPC:
+Example idea:
 
-* High performance and low latency
-* Strongly typed contracts
-* Efficient binary communication
-* Built-in support for streaming
-* Automatic code generation
+```
+Client calls function → Server executes function → Response returned
+```
 
-In the Inventory system, gRPC can be used by internal services such as:
+Instead of using HTTP REST endpoints like:
 
-* Order service
-* Inventory service
-* Product service
-* Notification service
+```
+GET /products
+POST /orders
+```
 
----
+gRPC uses **remote procedure calls (RPC)** like:
 
-# 2. gRPC Communication Model
-
-gRPC uses **Remote Procedure Calls (RPC)** where a client calls methods on a remote server as if they were local functions.
-
-Communication flow:
-
-Client Service → gRPC Client → Network → gRPC Server → Business Logic → Database
-
-The contract between services is defined using **Protocol Buffers (.proto files)**.
+```
+GetProduct()
+CreateOrder()
+UpdateInventory()
+```
 
 ---
 
-# 3. Protocol Buffers
+#  gRPC Architecture
 
-Protocol Buffers (Protobuf) define the structure of messages exchanged between services.
+Workflow:
 
-They provide:
+```
+Client Request
+     ↓
+Protocol Buffer Encoding
+     ↓
+HTTP/2 Transport
+     ↓
+Server Receives Request
+     ↓
+Service Method Execution
+     ↓
+Response Serialized
+     ↓
+Return to Client
+```
 
-* Compact binary serialization
-* Strong typing
-* Cross-language support
+## 1.Client Request
 
-Example message structure:
+The client calls a remote method (e.g., CreateProduct()).
 
-```proto
-message Product {
-  int32 id = 1;
-  string name = 2;
-  string sku = 3;
-  double price = 4;
-  int32 quantity = 5;
+## 2. Protocol Buffer Encoding
+
+The request data is converted into a compact binary format using Protocol Buffers.
+
+**.proto files define the API contract.**
+
+
+`service ProductService` {
+  `rpc CreateProduct(ProductRequest) returns (ProductResponse);`
 }
-```
 
-Each field has a unique identifier which ensures backward compatibility.
+**They describe:**
 
----
+**services: A service defines a collection of RPC functions (methods) that the client can call on the server.**
 
-# 4. gRPC Service Design
-
-Services define the operations that clients can call remotely.
-
-Example service definition:
-
-```proto
-service ProductService {
-  rpc GetProduct (ProductRequest) returns (ProductResponse);
-  rpc CreateProduct (CreateProductRequest) returns (ProductResponse);
+`service ProductService` {
+  `rpc GetProduct(ProductRequest) returns (ProductResponse);`
 }
-```
 
-This allows internal services to retrieve or create products through efficient RPC calls.
+**methods: A method is a remote function inside a service that the client can call.**
+
+rpc CreateProduct (CreateProductRequest) returns (ProductResponse);
+
+* request and response messages: Messages define the structure of the data sent between client and server.
+
+## 3. HTTP/2 Transport
+
+The encoded message is sent through HTTP/2, which supports:
+
+* multiplexing
+
+* streaming
+
+* faster communication.
+
+## 4. Server Receives Request
+
+The server receives the binary message and decodes it.
+
+## 5. Service Method Execution
+
+The requested service method runs on the server.
+
+## 6. Response Serialized
+
+The server converts the response into protobuf binary format.
+
+## 7. Return to Client
+
+The response is sent back to the client.
 
 ---
 
-# 5. Request and Response Messages
+# Types of gRPC Communication
 
-gRPC methods use structured request and response messages.
+gRPC supports **four communication types**.
 
-Example request:
+---
 
-```proto
-message ProductRequest {
-  int32 product_id = 1;
+##  Unary RPC
+In Unary RPC, the client sends one request, and the server returns one response.
+
+```
+Client  ─── Request ───▶ Server
+Client  ◀── Response ─── Server
+```
+
+Example
+
+Get product details.
+
+Client sends:
+
+GetProduct(productid=101)
+
+Server returns:
+
+Product name: Laptop
+Price: 800
+
+`service ProductService` {
+  `rpc GetProduct(ProductRequest) returns (ProductResponse);`
 }
-```
-
-Example response:
-
-```proto
-message ProductResponse {
-  Product product = 1;
-}
-```
-
-This ensures strongly typed communication between services.
 
 ---
 
-# 6. gRPC Communication Types
-
-gRPC supports four types of communication patterns.
-
-### Unary RPC
-
-The client sends a single request and receives a single response.
-
-Example use case:
-
-* Fetch product details
-
----
-
-### Server Streaming
-
-The client sends one request and receives a stream of responses.
-
-Example use case:
-
-* Streaming inventory updates
-
----
-
-### Client Streaming
-
-The client sends multiple messages and receives a single response.
-
-Example use case:
-
-* Bulk product uploads
-
----
-
-### Bidirectional Streaming
-
-Both client and server send streams of messages simultaneously.
-
-Example use case:
-
-* Real-time inventory synchronization
-
----
-
-# 7. Authentication Strategy
-
-Authentication between services is handled using **JWT tokens or service authentication keys**.
-
-The client service attaches authentication metadata to the request.
-
-Example metadata header:
+##  Server Streaming
+Here, the client sends one request, but the server sends multiple responses (a stream).
+Client sends request → server sends multiple responses.
 
 ```
-authorization: Bearer <service_token>
+Client  ─── Request ───▶ Server
+Client  ◀── Response 1 ─ Server
+Client  ◀── Response 2 ─ Server
+Client  ◀── Response 3 ─ Server
 ```
-
-The gRPC server verifies the token before processing the request.
-
----
-
-# 8. Error Handling
-
-gRPC provides standardized error codes.
-
-Common error codes include:
-
-| Code              | Description                    |
-| ----------------- | ------------------------------ |
-| UNAUTHENTICATED   | Invalid or missing credentials |
-| PERMISSION_DENIED | Insufficient permissions       |
-| NOT_FOUND         | Resource not found             |
-| INVALID_ARGUMENT  | Invalid request parameters     |
-| INTERNAL          | Server error                   |
-
-Example error response:
-
-```
-status: NOT_FOUND
-message: "Product not found"
-```
-
----
-
-# 9. Performance Advantages
-
-gRPC provides several performance improvements compared to traditional REST APIs.
-
-Key optimizations include:
-
-* Binary serialization using Protocol Buffers
-* Multiplexed connections over HTTP/2
-* Reduced network overhead
-* Efficient service-to-service communication
-
-These improvements make gRPC suitable for **microservice architectures**.
-
----
-
-# 10. Security Considerations
-
-Security is implemented using several mechanisms.
-
-Security measures include:
-
-* TLS encryption for secure communication
-* Token-based authentication
-* Input validation
-* Rate limiting
-* Access control between services
-
-These protections ensure secure communication within the system.
-
----
-
-# 11. Integration with Inventory Architecture
-
-Within the Inventory system architecture, gRPC is primarily used for **internal service communication**, while REST and GraphQL are used for **external client communication**.
-
-Example architecture:
-
-Client Applications
-↓
-REST / GraphQL API Gateway
-↓
-Backend Services
-↓
-gRPC Communication
-↓
-PostgreSQL Database
-
-This hybrid approach combines the flexibility of REST/GraphQL with the performance of gRPC.
-
----
-
-# 12. Versioning Strategy
-
-gRPC APIs evolve through **Protocol Buffer versioning**.
-
-Best practices include:
-
-* Adding new fields with new field numbers
-* Avoiding removal of existing fields
-* Marking deprecated fields when necessary
-* Maintaining backward compatibility
 
 Example:
 
-```proto
-message Product {
-  int32 id = 1;
-  string name = 2;
-  double price = 3;
-  string currency = 4; 
+```
+Example
+
+Listing products from a catalog.
+
+Client:
+
+ListProducts()
+
+Server responses:
+
+Product 1
+Product 2
+Product 3
+Product 4
+```
+
+`service ProductService` {
+  `rpc ListProducts(ProductRequest) returns (stream ProductResponse);`
+}
+
+stream means multiple responses will be sent.
+
+---
+
+##  Client Streaming
+
+In Client Streaming, the client sends multiple messages, and the server returns one final response after receiving everything.
+Client sends multiple messages → server sends one response.
+
+```
+Client  ─── Data 1 ───▶
+Client  ─── Data 2 ───▶
+Client  ─── Data 3 ───▶ Server
+Client  ◀── Final Response ───
+```
+
+```
+Example
+
+Uploading inventory data.
+
+Client sends:
+
+Product 1
+Product 2
+Product 3
+Product 4
+
+Server response:
+
+Upload complete. 4 items added.
+
+ `service InventoryService` {
+  `rpc UploadInventory(stream Product) returns (UploadStatus);`
 }
 ```
 
-New fields can be added without breaking older clients.
+---
+
+## Bidirectional Streaming
+
+In Bidirectional Streaming, both client and server send messages simultaneously.
+Both sides keep sending data independently.
+
+
+```
+Client  ─── Data 1 ───▶
+Server  ◀── Data A ───
+Client  ─── Data 2 ───▶
+Server  ◀── Data B ───
+Client  ─── Data 3 ───▶
+Server  ◀── Data C ───
+```
+
+Example:
+
+```
+Real-time inventory updates
+service InventoryService {
+  rpc LiveInventory(stream InventoryRequest) returns (stream InventoryResponse);
+}
+```
 
 ---
 
-# 13. Benefits of Using gRPC in Inventory System
+# gRPC Workflow (Step-by-Step)
 
-Using gRPC provides several benefits for the inventory system:
+Example: **Get Product**
 
-* Efficient communication between microservices
-* Strong contract-based APIs
-* Faster data transfer
-* Scalable service architecture
-* Cross-language compatibility
+### Step 1
+The client application calls a function using the gRPC client stub.
 
-This makes gRPC an ideal choice for internal backend communication.
+Client calls:
+
+```
+GetProduct(id=101)
+
+```
+
+### Step 2
+
+Client stub serializes request into **protobuf binary**.
+
+Example message defined in .proto:
+
+message ProductRequest {
+  int32 id = 1;
+}
+
+The request:
+
+id = 101
+
+is converted into compact binary format.
+
+### Step 3
+
+The serialized binary data is sent to the server using HTTP/2.
+
+* Multiplexing (multiple requests on one connection)
+
+* Faster communication
+
+* Streaming support
+
+### Step 4
+
+Server receives request.
+
+The server then:
+
+Decodes the protobuf message
+
+Identifies which service method should handle the request
+
+service ProductService {
+  rpc GetProduct(ProductRequest) returns (ProductResponse);
+}
+
+### Step 5
+
+Now the actual service implementation runs.
+
+Example server code:
+
+def GetProduct(self, request):
+    product = database.get_product(request.id)
+    return product
+
+Here the server executes the business logic.
+
+
+### Step 6
+
+The server retrieves the product from the database.
+
+Example:
+
+SELECT * FROM products WHERE id = 101
+
+Database returns:
+
+Name: Laptop
+Price: 800
+Stock: 25
+
+### Step 7
+
+The server creates a response message.
+
+Example response structure:
+
+message ProductResponse {
+  string name = 1;
+  float price = 2;
+}
+
+The response is then serialized into protobuf binary format.
+
+### Step 8
+
+The response travels back via HTTP/2.
+
+The client stub automatically converts the binary data into an object.
+
+Client receives:
+
+product.name
+product.price
+
+Example output:
+
+Laptop
+800
+
 
 ---
+
+# gRPC in Microservices
+
+gRPC is widely used for **internal microservice communication**.
+
+Example architecture:
+
+```
+API Gateway
+      ↓
+User Service (gRPC)
+Product Service (gRPC)
+Order Service (gRPC)
+Inventory Service (gRPC)
+```
+
+REST is used for **external clients**, gRPC for **internal services**.
+
+---
+# Advantages of gRPC
+
+Very fast communication
+Smaller payloads
+Strong schema
+Streaming support
+Auto code generation
+Ideal for microservices
+
+---
+
+

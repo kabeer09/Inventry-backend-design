@@ -9,6 +9,20 @@ It supports standard CRUD operations, nested resources, partial and full updates
 
 ## 1. Overview
 
+REST (Representational State Transfer) is a widely used architectural style for designing networked applications. It uses standard HTTP methods and resource-based URLs to perform operations on system resources.
+
+### The REST API is designed to be:
+
+* Scalable
+
+* Stateless
+
+* Easy to integrate
+
+* Compatible with standard web technologies
+
+All communication between the client and server uses JSON format.
+
 * **Base URL:** `api/v1`
 * **new version URL:** `api/v2`
 * **Format:** JSON
@@ -38,6 +52,7 @@ It supports standard CRUD operations, nested resources, partial and full updates
 /api/v1/products
 /api/v2/products
 /api/v1/inventory
+/api/v2/inventory
 /api/v1/orders
 /api/v1/orders/{orderId}/items
 
@@ -264,7 +279,7 @@ GET /api/v1/products?categoryId=2
 GET /api/v1/products?productid=500
 ```
 
-Format: `?key=value&key=value`
+**Format: `?key=value&key=value`**
 
 ---
 
@@ -276,7 +291,7 @@ POST /api/v1/orders/5/items
 DELETE /api/v1/orders/5/items/10
 ```
 
-Structure: `/parent/{parentId}/child/{childId}`
+**Structure: `/parent/{parentId}/child/{childId}`**
 
 ---
 
@@ -311,7 +326,7 @@ GET /products?search=laptop&categoryid=uuid-cat-1&price=500
 
 ### Why API Versioning Is Important
 
-* Without versioning:
+*`Without versioning:`
 
 - You change the API.
 
@@ -319,7 +334,7 @@ GET /products?search=laptop&categoryid=uuid-cat-1&price=500
 
 - Users experience errors.
 
-* With versioning:
+* `With versioning:`
 
 - Old clients keep using v1
 
@@ -327,20 +342,20 @@ GET /products?search=laptop&categoryid=uuid-cat-1&price=500
 
 *This keeps the system stable and backward compatible.*
 
-* URL-Based Versioning
+* `URL-Based Versioning`
 
-- Your system uses URL versioning, which is the most common and easiest method.
+- system uses URL versioning, which is the most common and easiest method.
 
 - The version number is included in the URL.
 
 *Example structure:*
 
-/api/v1/
-/api/v2/
+`/api/v1/`
+`/api/v2/`
 
 * Example Endpoints
 
-* **Version 1 (Current API)**
+#### **Version 1 (Current API)**
 
 GET  /api/v1/products
 POST /api/v1/products
@@ -353,7 +368,7 @@ GET /api/v1/products/101
 This returns product information.
 
 
-* **Version 2 (Future API)**
+#### **Version 2 (Future API)**
 
 GET  /api/v2/products
 POST /api/v2/products
@@ -391,7 +406,7 @@ The Inventory Management System uses **URL-based versioning** to support API evo
 
 ## 12. OpenAPI (Swagger) 
 
-* **What Swagger Is (Simple Meaning)**
+* **What is Swagger**
 
 - Swagger is a tool that helps you describe, document, and test your APIs.
 
